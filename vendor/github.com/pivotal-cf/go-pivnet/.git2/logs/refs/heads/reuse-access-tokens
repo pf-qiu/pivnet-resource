@@ -1,0 +1,3 @@
+0000000000000000000000000000000000000000 21cadb216a21dfca4b42588737d949c143ab9b2a Ivan Wang <yifwang@pivotal.io> 1554126931 -0400	branch: Created from refs/remotes/origin/reuse-access-tokens
+21cadb216a21dfca4b42588737d949c143ab9b2a cb82849c4e5b0d3598f62034dc04a355d2461ff6 Ivan Wang <yifwang@pivotal.io> 1554237704 -0400	commit (amend): allow access token service to be decorated
+cb82849c4e5b0d3598f62034dc04a355d2461ff6 d48032f107b29557e504a40ef59c1f19309acb44 Ka Hin Ng <kang@pivotal.io> 1554237712 -0400	commit (amend): allow access token service to be decorated

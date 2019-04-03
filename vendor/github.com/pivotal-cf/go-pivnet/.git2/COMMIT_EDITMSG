@@ -1,0 +1,24 @@
+allow access token service to be decorated
+
+this is so the cli can save the new access token when it chages
+
+[#159442066]
+
+Signed-off-by: Ivan Wang <yifwang@pivotal.io>
+Signed-off-by: Ka Hin Ng <kang@pivotal.io>
+
+# Please enter the commit message for your changes. Lines starting
+# with '#' will be ignored, and an empty message aborts the commit.
+#
+# Author:    Paul Nikonowicz <pnikonowicz@pivotal.io>
+# Date:      Thu Mar 28 14:52:46 2019 -0400
+#
+# On branch reuse-access-tokens
+# Your branch and 'origin/reuse-access-tokens' have diverged,
+# and have 1 and 1 different commits each, respectively.
+#   (use "git pull" to merge the remote branch into yours)
+#
+# Changes to be committed:
+#	modified:   auth_test.go
+#	modified:   pivnet.go
+#
