@@ -55,9 +55,9 @@ type ProductFile struct {
 }
 
 type FileGroup struct {
-	ID           int                    `yaml:"id,omitempty"`
-	Name         string                 `yaml:"name,omitempty"`
-	ProductFiles []FileGroupProductFile `yaml:"product_files,omitempty"`
+	ID           int           `yaml:"id,omitempty"`
+	Name         string        `yaml:"name,omitempty"`
+	ProductFiles []ProductFile `yaml:"product_files,omitempty"`
 }
 
 type FileGroupProductFile struct {

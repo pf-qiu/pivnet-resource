@@ -22,6 +22,8 @@ type ReleaseUploader struct {
 	asyncTimeout  time.Duration
 	pollFrequency time.Duration
 	skipPolling   bool
+
+	remoteProductFilesMapping map[string]pivnet.ProductFile
 }
 
 type ProductFileMetadata struct {
@@ -89,86 +91,98 @@ func NewReleaseUploader(
 	}
 }
 
-func (u ReleaseUploader) Upload(release pivnet.Release, exactGlobs []string) error {
-	for _, exactGlob := range exactGlobs {
+func (u ReleaseUploader) UploadSingleFile(release pivnet.Release, f *metadata.ProductFile, standalone bool) error {
+	awsObjectKey, _, err := u.s3.ComputeAWSObjectKey(f.File)
+	if err != nil {
+		return err
+	}
 
-		awsObjectKey, _, err := u.s3.ComputeAWSObjectKey(exactGlob)
+	productFile, ok := u.remoteProductFilesMapping[awsObjectKey]
+
+	if ok {
+		matched, err := u.hasSameFileContent(f.File, productFile)
 		if err != nil {
 			return err
 		}
 
-		fileData := u.getFileData(exactGlob)
-
-		productFiles, err := u.pivnet.ProductFiles(u.productSlug)
-		if err != nil {
-			return err
-		}
-
-		var productFile pivnet.ProductFile
-		var foundMatchingFile bool
-		for _, pf := range productFiles {
-			if pf.AWSObjectKey == awsObjectKey {
-				foundMatchingFile = true
-
-				matched, err := u.hasSameFileContent(exactGlob, pf)
-				if err != nil {
-					return err
-				}
-				productFile = pf
-
-				if !matched {
-					return fmt.Errorf("File conflict: the file '%s' could not be uploaded and associated to this release."+
-						"  A different file with the same name already exists on S3.  Please recreate the release using a different"+
-						" filename for this file or upload the file to this release manually", exactGlob)
-				} else {
-					u.logger.Info(fmt.Sprintf("An identical file was found on S3, skipping file upload. The existing file %s "+
-						"will be associated to this release.", awsObjectKey))
-				}
-			}
-		}
-
-		if !foundMatchingFile {
-			u.logger.Info(fmt.Sprintf(
-				"Creating product file with remote name: '%s'",
-				fileData.uploadAs,
-			))
-
-			err := u.s3.UploadFile(exactGlob)
-			if err != nil {
-				return err
-			}
-
-			productFileConfig, err := u.getProductFileConfig(exactGlob, awsObjectKey, fileData, release)
-			if err != nil {
-				return err
-			}
-
-			productFile, err = u.pivnet.CreateProductFile(productFileConfig)
-			if err != nil {
-				return err
-			}
-
+		if !matched {
+			return fmt.Errorf("File conflict: the file '%s' could not be uploaded and associated to this release."+
+				"  A different file with the same name already exists on S3.  Please recreate the release using a different"+
+				" filename for this file or upload the file to this release manually", f.File)
 		} else {
-			u.logger.Info(fmt.Sprintf(
-				"File '%s' already exists, skipping creation",
-				fileData.uploadAs,
-			))
+			u.logger.Info(fmt.Sprintf("An identical file was found on S3, skipping file upload. The existing file %s "+
+				"will be associated to this release.", awsObjectKey))
+		}
+	} else {
+		u.logger.Info(fmt.Sprintf(
+			"Creating product file with remote name: '%s'",
+			f.UploadAs,
+		))
+
+		err := u.s3.UploadFile(f.File)
+		if err != nil {
+			return err
 		}
 
+		fd := u.getFileData(f.File)
+		productFileConfig, err := u.getProductFileConfig(f.File, awsObjectKey, fd, release)
+		if err != nil {
+			return err
+		}
+
+		productFile, err = u.pivnet.CreateProductFile(productFileConfig)
+		if err != nil {
+			return err
+		}
+	}
+
+	f.ID = productFile.ID
+
+	if standalone {
 		u.logger.Info(fmt.Sprintf(
 			"Adding product file: '%s' with ID: %d",
-			fileData.uploadAs,
-			productFile.ID,
+			f.UploadAs,
+			f.ID,
 		))
 
 		err = u.pivnet.AddProductFile(u.productSlug, release.ID, productFile.ID)
 		if err != nil {
 			return err
 		}
+	}
 
-		err = u.pollForProductFile(productFile)
+	err = u.pollForProductFile(productFile)
+	if err != nil {
+		return fmt.Errorf("error while polling: %s", err)
+	}
+
+	return nil
+}
+
+func (u ReleaseUploader) Upload(release pivnet.Release) (err error) {
+	remoteProductFiles, err := u.pivnet.ProductFiles(u.productSlug)
+	if err != nil {
+		return err
+	}
+	u.remoteProductFilesMapping = make(map[string]pivnet.ProductFile)
+	for _, pf := range remoteProductFiles {
+		u.remoteProductFilesMapping[pf.AWSObjectKey] = pf
+	}
+
+	for i := range u.metadata.ProductFiles {
+		err = u.UploadSingleFile(release, &u.metadata.ProductFiles[i], true)
 		if err != nil {
-			return fmt.Errorf("error while polling: %s", err)
+			return err
+		}
+	}
+
+	for i := range u.metadata.FileGroups {
+		fg := u.metadata.FileGroups[i]
+		for j := range fg.ProductFiles {
+			err = u.UploadSingleFile(release, &fg.ProductFiles[j], false)
+			if err != nil {
+				return err
+			}
 		}
 	}
 

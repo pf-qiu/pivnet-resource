@@ -2,6 +2,8 @@ package out
 
 import (
 	"fmt"
+	"os"
+	"path"
 
 	pivnet "github.com/pivotal-cf/go-pivnet/v2"
 	"github.com/pivotal-cf/go-pivnet/v2/logger"
@@ -75,7 +77,7 @@ type creator interface {
 
 //go:generate counterfeiter --fake-name Uploader . uploader
 type uploader interface {
-	Upload(release pivnet.Release, exactGlobs []string) error
+	Upload(release pivnet.Release) error
 }
 
 //go:generate counterfeiter --fake-name UserGroupsUpdater . userGroupsUpdater
@@ -123,6 +125,18 @@ type globber interface {
 	ExactGlobs() ([]string, error)
 }
 
+func (c OutCommand) findMissingFile(files []metadata.ProductFile) []string {
+	var missingFiles []string
+	for _, f := range files {
+
+		_, err := os.Stat(path.Join(c.sourcesDir, f.File))
+		if os.IsNotExist(err) {
+			missingFiles = append(missingFiles, f.File)
+		}
+	}
+	return missingFiles
+}
+
 func (c OutCommand) Run(input concourse.OutRequest) (concourse.OutResponse, error) {
 	if c.outDir == "" {
 		return concourse.OutResponse{}, fmt.Errorf("out dir must be provided")
@@ -133,25 +147,11 @@ func (c OutCommand) Run(input concourse.OutRequest) (concourse.OutResponse, erro
 		return concourse.OutResponse{}, err
 	}
 
-	exactGlobs, err := c.globClient.ExactGlobs()
-	if err != nil {
-		return concourse.OutResponse{}, err
-	}
+	missingFiles := c.findMissingFile(c.m.ProductFiles)
 
-	var missingFiles []string
-	for _, f := range c.m.ProductFiles {
-		var foundFile bool
-		for _, glob := range exactGlobs {
-			if glob == f.File {
-				foundFile = true
-				continue
-			}
-		}
-
-		if !foundFile {
-			missingFiles = append(missingFiles, f.File)
-			foundFile = false
-		}
+	for _, g := range c.m.FileGroups {
+		mf := c.findMissingFile(g.ProductFiles)
+		missingFiles = append(missingFiles, mf...)
 	}
 
 	if len(missingFiles) > 0 {
@@ -171,7 +171,7 @@ func (c OutCommand) Run(input concourse.OutRequest) (concourse.OutResponse, erro
 		c.logger.Info(
 			"file glob not provided - skipping upload to s3")
 	} else {
-		err = c.uploader.Upload(pivnetRelease, exactGlobs)
+		err = c.uploader.Upload(pivnetRelease)
 		if err != nil {
 			return concourse.OutResponse{}, err
 		}
