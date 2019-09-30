@@ -276,7 +276,7 @@ func (c *InCommand) Run(input concourse.InRequest) (concourse.InResponse, error)
 		}
 
 		for _, pf := range fg.ProductFiles {
-			mfg.ProductFiles = append(mfg.ProductFiles, metadata.FileGroupProductFile{
+			mfg.ProductFiles = append(mfg.ProductFiles, metadata.ProductFile{
 				ID: pf.ID,
 			})
 		}
