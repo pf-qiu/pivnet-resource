@@ -124,7 +124,16 @@ func (u ReleaseUploader) UploadSingleFile(release pivnet.Release, f *metadata.Pr
 			return err
 		}
 
-		fd := u.getFileData(f.File)
+		fd := ProductFileMetadata{
+			uploadAs:           f.UploadAs,
+			description:        f.Description,
+			fileVersion:        f.FileVersion,
+			docsURL:            f.DocsURL,
+			systemRequirements: f.SystemRequirements,
+			platforms:          f.Platforms,
+			includedFiles:      f.IncludedFiles,
+			fileType:           f.FileType,
+		}
 		productFileConfig, err := u.getProductFileConfig(f.File, awsObjectKey, fd, release)
 		if err != nil {
 			return err
