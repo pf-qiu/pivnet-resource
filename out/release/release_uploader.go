@@ -146,6 +146,7 @@ func (u ReleaseUploader) UploadSingleFile(release pivnet.Release, f *metadata.Pr
 	}
 
 	f.ID = productFile.ID
+	u.logger.Info(fmt.Sprintf("FileID: %v", f.ID))
 
 	if standalone {
 		u.logger.Info(fmt.Sprintf(
