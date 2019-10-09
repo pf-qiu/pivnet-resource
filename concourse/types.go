@@ -61,6 +61,7 @@ type OutParams struct {
 	MetadataFile           string `json:"metadata_file"`
 	SkipProductFilePolling bool   `json:"skip_product_file_polling"`
 	Override               bool   `json:"override"`
+	Reuse                  bool   `json:"reuse"`
 }
 
 type OutResponse struct {

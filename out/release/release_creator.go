@@ -183,6 +183,9 @@ func (rc ReleaseCreator) Create() (pivnet.Release, error) {
 				if err != nil {
 					return pivnet.Release{}, err
 				}
+			} else if rc.params.Reuse {
+				rc.logger.Info(fmt.Sprintf("Reuse exist release with ID: %d", r.ID))
+				return r, nil
 			} else {
 				return pivnet.Release{}, fmt.Errorf(
 					"Release '%s' with version '%s' already exists.",
