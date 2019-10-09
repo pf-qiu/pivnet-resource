@@ -143,23 +143,23 @@ func (u ReleaseUploader) UploadSingleFile(release pivnet.Release, f *metadata.Pr
 		if err != nil {
 			return err
 		}
+
+		if standalone {
+			u.logger.Info(fmt.Sprintf(
+				"Adding product file: '%s' with ID: %d",
+				f.UploadAs,
+				f.ID,
+			))
+
+			err = u.pivnet.AddProductFile(u.productSlug, release.ID, productFile.ID)
+			if err != nil {
+				return err
+			}
+		}
 	}
 
 	f.ID = productFile.ID
 	u.logger.Info(fmt.Sprintf("FileID: %v", f.ID))
-
-	if standalone {
-		u.logger.Info(fmt.Sprintf(
-			"Adding product file: '%s' with ID: %d",
-			f.UploadAs,
-			f.ID,
-		))
-
-		err = u.pivnet.AddProductFile(u.productSlug, release.ID, productFile.ID)
-		if err != nil {
-			return err
-		}
-	}
 
 	err = u.pollForProductFile(productFile)
 	if err != nil {
