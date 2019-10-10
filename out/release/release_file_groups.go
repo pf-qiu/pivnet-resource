@@ -34,27 +34,46 @@ type releaseFileGroupsAdderClient interface {
 	AddFileGroup(productSlug string, releaseID int, fileGroupID int) error
 	CreateFileGroup(config pivnet.CreateFileGroupConfig) (pivnet.FileGroup, error)
 	AddToFileGroup(productSlug string, fileGroupID int, productFileID int) error
+	FileGroupsForRelease(productSlug string, releaseID int) ([]pivnet.FileGroup, error)
 }
 
 func (rf ReleaseFileGroupsAdder) AddReleaseFileGroups(release pivnet.Release) error {
+	groups, err := rf.pivnet.FileGroupsForRelease(rf.productSlug, release.ID)
+	if err != nil {
+		return nil
+	}
+
+	groupMapping := make(map[string]int)
+	for _, g := range groups {
+		groupMapping[g.Name] = g.ID
+	}
+
 	for _, fileGroup := range rf.metadata.FileGroups {
 		fileGroupID := fileGroup.ID
 		if fileGroupID == 0 {
-			rf.logger.Info(fmt.Sprintf(
-				"Creating file group with name: %s",
-				fileGroup.Name,
-			))
+			fileGroupID, ok := groupMapping[fileGroup.Name]
 
-			g, err := rf.pivnet.CreateFileGroup(pivnet.CreateFileGroupConfig{
-				ProductSlug: rf.productSlug,
-				Name:        fileGroup.Name,
-			})
+			if ok {
+				rf.logger.Info(fmt.Sprintf(
+					"Reuse file group with ID: %d",
+					fileGroupID,
+				))
+			} else {
+				rf.logger.Info(fmt.Sprintf(
+					"Creating file group with name: %s",
+					fileGroup.Name,
+				))
+				g, err := rf.pivnet.CreateFileGroup(pivnet.CreateFileGroupConfig{
+					ProductSlug: rf.productSlug,
+					Name:        fileGroup.Name,
+				})
 
-			if err != nil {
-				return err
+				if err != nil {
+					return err
+				}
+
+				fileGroupID = g.ID
 			}
-
-			fileGroupID = g.ID
 
 			for _, pf := range fileGroup.ProductFiles {
 				rf.logger.Info(fmt.Sprintf(
