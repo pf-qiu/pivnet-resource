@@ -50,8 +50,9 @@ func (rf ReleaseFileGroupsAdder) AddReleaseFileGroups(release pivnet.Release) er
 
 	for _, fileGroup := range rf.metadata.FileGroups {
 		fileGroupID := fileGroup.ID
+		ok := false
 		if fileGroupID == 0 {
-			fileGroupID, ok := groupMapping[fileGroup.Name]
+			fileGroupID, ok = groupMapping[fileGroup.Name]
 
 			if ok {
 				rf.logger.Info(fmt.Sprintf(
