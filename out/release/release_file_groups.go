@@ -83,17 +83,26 @@ func (rf ReleaseFileGroupsAdder) AddReleaseFileGroups(release pivnet.Release) er
 		}
 
 		for _, pf := range fileGroup.ProductFiles {
-			rf.logger.Info(fmt.Sprintf(
-				"Adding product file %d to file group with ID: %d",
-				pf.ID,
-				fileGroupID,
-			))
+			if pf.AlreadyExist {
+				rf.logger.Info(fmt.Sprintf(
+					"Product file %d already exists in file group with ID: %d",
+					pf.ID,
+					fileGroupID,
+				))
+			} else {
+				rf.logger.Info(fmt.Sprintf(
+					"Adding product file %d to file group with ID: %d",
+					pf.ID,
+					fileGroupID,
+				))
 
-			err := rf.pivnet.AddToFileGroup(rf.productSlug, fileGroupID, pf.ID)
+				err := rf.pivnet.AddToFileGroup(rf.productSlug, fileGroupID, pf.ID)
 
-			if err != nil {
-				return err
+				if err != nil {
+					return err
+				}
 			}
+
 		}
 	}
 

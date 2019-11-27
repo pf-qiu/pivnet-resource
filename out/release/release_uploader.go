@@ -110,10 +110,14 @@ func (u ReleaseUploader) UploadSingleFile(release pivnet.Release, f *metadata.Pr
 				"  A different file with the same name already exists on S3.  Please recreate the release using a different"+
 				" filename for this file or upload the file to this release manually", f.File)
 		} else {
-			u.logger.Info(fmt.Sprintf("An identical file was found on S3, skipping file upload. The existing file %s "+
-				"will be associated to this release.", awsObjectKey))
+			f.AlreadyExist = true
 			if standalone {
+				u.logger.Info(fmt.Sprintf("An identical file was found on S3, skipping file upload. The existing file %s "+
+					"will be associated to this release.", awsObjectKey))
 				u.pivnet.AddProductFile(u.productSlug, release.ID, productFile.ID)
+			} else {
+				u.logger.Info(fmt.Sprintf("An identical file was found on S3, skipping file upload. The existing file %s "+
+					"belongs to a file group, no further actions.", awsObjectKey))
 			}
 		}
 	} else {

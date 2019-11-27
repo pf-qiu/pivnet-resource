@@ -52,6 +52,8 @@ type ProductFile struct {
 	SystemRequirements []string `yaml:"system_requirements,omitempty"`
 	Platforms          []string `yaml:"platforms,omitempty"`
 	IncludedFiles      []string `yaml:"included_files,omitempty"`
+
+	AlreadyExist bool
 }
 
 type FileGroup struct {
