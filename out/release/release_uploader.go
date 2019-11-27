@@ -112,6 +112,9 @@ func (u ReleaseUploader) UploadSingleFile(release pivnet.Release, f *metadata.Pr
 		} else {
 			u.logger.Info(fmt.Sprintf("An identical file was found on S3, skipping file upload. The existing file %s "+
 				"will be associated to this release.", awsObjectKey))
+			if standalone {
+				u.pivnet.AddProductFile(u.productSlug, release.ID, productFile.ID)
+			}
 		}
 	} else {
 		u.logger.Info(fmt.Sprintf(
